@@ -63,22 +63,20 @@
          [/lang]
          */
         parseContent: function(content, font, color) {
-            var en;
+            var en, metrics;
             if (typeof content === 'undefined') {
                 content = '';
             }
             if (typeof content === 'number') {
-                content = arguments.callee('' + content, font);
-            } else if (content instanceof enchant.Entity) {
+                content = '' + content;
+            }
+            if (content instanceof enchant.Entity) {
             } else if (content instanceof enchant.Surface) {
                 en = new enchant.Sprite(content.width, content.height);
                 en.image = content;
                 content = en;
             } else if (typeof content == 'string') {
-                calced = getElementMetrics(content, font);
                 en = new enchant.Label(content);
-                en.width = calced.width;
-                en.height = calced.height;
                 if (font) {
                     en.font = font;
                 } else {
@@ -87,6 +85,9 @@
                 if (color) {
                     en.color = color;
                 }
+                metrics = en.getMetrics();
+                en.width = metrics.width;
+                en.height = metrics.height;
                 content = en;
             }
             return content;
@@ -1251,17 +1252,15 @@
          */
         initialize: function(width, height) {
             enchant.Entity.call(this);
+            this.childNodes = [];
             this._background;
             this.width = width;
             this.height = height;
-            this.childNodes = [];
-            this.parentNode;
-            this._renderFrag = true;
 
             [ enchant.Event.ADDED_TO_SCENE, enchant.Event.REMOVED_FROM_SCENE ]
                 .forEach(function(event) {
                     this.addEventListener(event, function(e) {
-                        this.childNodes.forEach(function(child) {
+                        this.childNodes.slice().forEach(function(child) {
                             child.scene = this.scene;
                             child.dispatchEvent(e);
                         }, this);
@@ -1276,7 +1275,8 @@
                 return this._width;
             },
             set: function(width) {
-                this._style.width = (this._width = width) + 'px';
+                this._width = width;
+                this._dirty = true;
                 if (this.background instanceof enchant.widget.Ninepatch) {
                     this.background.width = this.width;
                 }
@@ -1290,7 +1290,8 @@
                 return this._height;
             },
             set: function(height) {
-                this._style.height = (this._height = height) + 'px';
+                this._height = height;
+                this._dirty = true;
                 if (this.background instanceof enchant.widget.Ninepatch) {
                     this.background.height = this.height;
                 }
@@ -3271,7 +3272,7 @@
          * @param {Boolean} draggable Sets whether or not item can be dragged.
          [/lang]
          * @constructs
-         * @extends enchant.widget.EntityGroup
+         * @extends enchant.widget.ScrollView
          */
         initialize: function(width, height, draggable) {
             enchant.widget.ScrollView.call(this, width, height);
@@ -3833,7 +3834,7 @@
                 var removeChild = enchant.widget.EntityGroup.prototype.removeChild;
                 var menu = this;
                 if (this.childNodes) {
-                    this.childNodes.forEach(function(child) {
+                    this.childNodes.slice().forEach(function(child) {
                         removeChild.call(menu, child);
                     });
                 }

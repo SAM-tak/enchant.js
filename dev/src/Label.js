@@ -24,6 +24,8 @@ enchant.Label = enchant.Class.create(enchant.Entity, {
         this.width = 300;
         this.font = '14px serif';
         this.textAlign = 'left';
+
+        this._debugColor = '#ff0000';
     },
     width: {
         get: function() {
@@ -39,6 +41,9 @@ enchant.Label = enchant.Class.create(enchant.Entity, {
     /**
      [lang:ja]
      * 表示するテキスト.
+     * DOM レンダラを利用している場合 (DOMScene 以下にある場合) 改行タグ (br) も利用できるが、
+     * ユーザから入力したり、サーバから取得した文字列を表示する場合, XSS 脆弱性などに注意してください.
+     * Canvas レンダラを利用できる場合でも、改行タグ (br, BR) は改行に変換されます。
      [/lang]
      [lang:en]
      * Text to be displayed.
@@ -206,30 +211,30 @@ enchant.Label = enchant.Class.create(enchant.Entity, {
         } else {
             this._boundOffset = 0;
         }
+    },
+    getMetrics: function(text) {
+        var ret = {};
+        var div, width, height;
+        if (document.body) {
+            div = document.createElement('div');
+            for (var prop in this._style) {
+                if(prop !== 'width' && prop !== 'height') {
+                    div.style[prop] = this._style[prop];
+                }
+            }
+            text = text || this._text;
+            div.innerHTML = text.replace(/ /g, '&nbsp;');
+            div.style.whiteSpace = 'noWrap';
+            div.style.lineHeight = 1;
+            document.body.appendChild(div);
+            ret.height = parseInt(getComputedStyle(div).height, 10) + 1;
+            div.style.position = 'absolute';
+            ret.width = parseInt(getComputedStyle(div).width, 10) + 1;
+            document.body.removeChild(div);
+        } else {
+            ret.width = this.width;
+            ret.height = this.height;
+        }
+        return ret;
     }
 });
-
-enchant.Label.prototype.getMetrics = function(text) {
-    var ret = {};
-    var div, width, height;
-    if (document.body) {
-        div = document.createElement('div');
-        for (var prop in this._style) {
-            if(prop !== 'width' && prop !== 'height') {
-                div.style[prop] = this._style[prop];
-            }
-        }
-        text = text || this._text;
-        div.innerHTML = text.replace(/ /g, '&nbsp;');
-        div.style.whiteSpace = 'noWrap';
-        document.body.appendChild(div);
-        ret.height = parseInt(getComputedStyle(div).height, 10) + 1;
-        div.style.position = 'absolute';
-        ret.width = parseInt(getComputedStyle(div).width, 10) + 1;
-        document.body.removeChild(div);
-    } else {
-        ret.width = this.width;
-        ret.height = this.height;
-    }
-    return ret;
-};
